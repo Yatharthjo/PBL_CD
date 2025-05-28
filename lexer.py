@@ -1,8 +1,6 @@
-# lexer.py
 
 import re
 import json
-
 
 keywords = {'int', 'float', 'char', 'return'}
 builtin_funcs = {'printf', 'scanf'}
@@ -18,12 +16,14 @@ token_spec = [
     ('MISMATCH', r'.'),
 ]
 
-tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_spec)
+tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_spec)
 
 def lexer(code):
     tokens = []
     symbol_table = {}
     current_type = None
+
+    print(" Starting Lexical Analysis...\n")
 
     for match in re.finditer(tok_regex, code):
         kind = match.lastgroup
@@ -32,12 +32,11 @@ def lexer(code):
         if kind == 'ID':
             if value in keywords:
                 kind = 'KEYWORD'
-                current_type = value
+                current_type = value  
             elif value in builtin_funcs:
                 kind = 'BUILTIN_FUNC'
             else:
                 kind = 'ID'
-                
                 if current_type and value not in symbol_table:
                     symbol_table[value] = {
                         "type": current_type,
@@ -45,16 +44,21 @@ def lexer(code):
                         "initialized": False
                     }
 
-        elif kind == 'OP' and value == '=':
+        if kind == 'OP' and value == '=':
             if len(tokens) > 0 and tokens[-1][0] == 'ID':
-                var = tokens[-1][1]
-                if var in symbol_table:
-                    symbol_table[var]['initialized'] = True
+                var_name = tokens[-1][1]
+                if var_name in symbol_table:
+                    symbol_table[var_name]["initialized"] = True
 
         if kind not in {'SKIP', 'NEWLINE'}:
             tokens.append((kind, value))
 
+
+    for t in tokens:
+        print(f"Token: {t[0]:<12} | Value: {t[1]}")
+
     with open("symbol_table.json", "w") as f:
         json.dump(symbol_table, f, indent=2)
 
+    print("\nSymbol Table Generated in 'symbol_table.json'\n")
     return tokens
